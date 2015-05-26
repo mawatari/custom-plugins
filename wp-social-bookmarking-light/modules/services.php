@@ -30,8 +30,6 @@ class WpSocialBookmarkingLight
     
     function WpSocialBookmarkingLight( $url, $title, $blogname )
     {
-        // タイトルから関心度数を除去する
-        $title= preg_replace("/<span class=.*?<\/span>/", "", $title);
         $title = $this->to_utf8( $title );
         $this->blogname = $this->to_utf8( $blogname );
         $this->url = $url;

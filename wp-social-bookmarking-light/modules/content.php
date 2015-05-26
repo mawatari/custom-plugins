@@ -43,6 +43,28 @@ function wp_social_bookmarking_light_output( $services, $link, $title )
     if( $out == '' ){
         return $out;
     }
+
+    // 関心度を追加表示
+    if (function_exists('scc_get_share_total')) {
+        // カウントが0である場合はreturn
+        $count = intval(scc_get_share_total());
+        if (!$count)
+            return $out;
+
+        // タイトルに関心度数を表示する
+        $interestCount = $count == 1 ? '1 interest' : $count . ' interests';
+        $interestClass = 'interest';
+        if ($count <= 3) {
+            $interestClass .= ' interest-low';
+        } elseif ($count <= 10) {
+            $interestClass .= ' interest-middle';
+        } else {
+            $interestClass .= ' interest-high';
+        }
+
+        $out .= '<span class="' . $interestClass . '">' . $interestCount . '</span>';
+    }
+
     return "<div class='wp_social_bookmarking_light'>{$out}</div><br class='wp_social_bookmarking_light_clear' />";
 }
 
