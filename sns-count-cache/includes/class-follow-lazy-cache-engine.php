@@ -3,7 +3,6 @@
 class-follow-lazy-cache-engine.php
 
 Description: This class is a data cache engine whitch get and cache data using wp-cron at regular intervals  
-Version: 0.4.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -67,16 +66,7 @@ class Follow_Lazy_Cache_Engine extends Follow_Cache_Engine {
 	 * Latency suffix
 	 */	  
   	private $check_latency = 10;
-    
-	/**
-	 * Class constarctor
-	 * Hook onto all of the actions and filters needed by the plugin.
-	 *
-	 */
-	protected function __construct() {
-	  	Common_Util::log('[' . __METHOD__ . '] (line='. __LINE__ . ')');
-	}
-	
+    	
   	/**
 	 * Initialization
 	 *
@@ -85,7 +75,7 @@ class Follow_Lazy_Cache_Engine extends Follow_Cache_Engine {
   	public function initialize( $options = array() ) {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 
-	  	$this->transient_prefix = self::DEF_TRANSIENT_PREFIX;
+	  	$this->cache_prefix = self::DEF_TRANSIENT_PREFIX;
 	  	$this->prime_cron = self::DEF_PRIME_CRON;
 	  	$this->execute_cron = self::DEF_EXECUTE_CRON;
 	  	$this->event_schedule = self::DEF_EVENT_SCHEDULE;
@@ -95,14 +85,13 @@ class Follow_Lazy_Cache_Engine extends Follow_Cache_Engine {
 	  	if ( isset( $options['crawler'] ) ) $this->crawler = $options['crawler'];	  
 	  	if ( isset( $options['target_sns'] ) ) $this->target_sns = $options['target_sns'];
 	  	if ( isset( $options['check_interval'] ) ) $this->check_interval = $options['check_interval'];	  
-	  	if ( isset( $options['transient_prefix'] ) ) $this->transient_prefix = $options['transient_prefix'];
+	  	if ( isset( $options['cache_prefix'] ) ) $this->cache_prefix = $options['cache_prefix'];
 		if ( isset( $options['execute_cron'] ) ) $this->execute_cron = $options['execute_cron'];
 	  	if ( isset( $options['check_latency'] ) ) $this->check_latency = $options['check_latency'];
-		if ( isset( $options['cache_post_types'] ) ) $this->cache_post_types = $options['cache_post_types'];
 	  	if ( isset( $options['scheme_migration_mode'] ) ) $this->scheme_migration_mode = $options['scheme_migration_mode'];
 	  	if ( isset( $options['scheme_migration_exclude_keys'] ) ) $this->scheme_migration_exclude_keys = $options['scheme_migration_exclude_keys'];
 	  
-		add_action( $this->execute_cron, array( $this, 'execute_cache' ), 10, 1 );
+		add_action( $this->execute_cron, array( $this, 'execute_cache' ), 10, 0 );
 
   	}  
 
@@ -129,7 +118,7 @@ class Follow_Lazy_Cache_Engine extends Follow_Cache_Engine {
 		Common_Util::log( '[' . __METHOD__ . '] check_latency: ' . $this->check_latency );
 		Common_Util::log( '[' . __METHOD__ . '] next_exec_time: ' . $next_exec_time );
 		
-	  	wp_schedule_single_event( $next_exec_time, $this->execute_cron, array( Common_Util::short_hash( $next_exec_time ) ) ); 
+	  	wp_schedule_single_event( $next_exec_time, $this->execute_cron, array() ); 
 	}  
 
    	/**
@@ -137,18 +126,29 @@ class Follow_Lazy_Cache_Engine extends Follow_Cache_Engine {
 	 *
 	 * @since 0.4.0
 	 */	    
-	public function execute_cache( $hash ) {
+	public function execute_cache() {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 		
 	  	$cache_expiration = $this->get_cache_expiration();
 		  
 		Common_Util::log( '[' . __METHOD__ . '] cache_expiration: ' . $cache_expiration );
 
-	  	$this->cache( NULL, $this->target_sns, $cache_expiration );
+	  	$url = get_feed_link();
 	  
-		if ( ! is_null( $this->delegate ) && method_exists( $this->delegate, 'order_cache' ) ) {
-		  	$this->delegate->order_cache( $this, NULL );
-	  	}		  
+	  	$transient_id = $this->get_cache_key( 'follow' );	  
+
+		$options = array(
+			'cache_key' => $transient_id,
+			'target_url' => $url,
+		  	'target_sns' => $this->target_sns,
+			'cache_expiration' => $cache_expiration
+		);
+	  
+	  	// Primary cache
+	  	$this->cache( $options );
+
+	  	// Secondary cache
+	  	$this->delegate_cache( $options );
 	}
   
   	/**

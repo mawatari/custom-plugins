@@ -3,7 +3,6 @@
 class-share-rush-cache-engine.php
 
 Description: This class is a data cache engine whitch get and cache data using wp-cron at regular intervals  
-Version: 0.4.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -77,16 +76,7 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
 	 * Term considered as new content
 	 */	    	
   	private $new_content_term = 3;
-    
-	/**
-	 * Class constarctor
-	 * Hook onto all of the actions and filters needed by the plugin.
-	 *
-	 */
-	protected function __construct() {
-	  	Common_Util::log('[' . __METHOD__ . '] (line='. __LINE__ . ')');
-	}
-  	
+ 
   	/**
 	 * Initialization
 	 *
@@ -95,7 +85,7 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
   	public function initialize( $options = array() ) {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 
-	  	$this->transient_prefix = self::DEF_TRANSIENT_PREFIX;
+	  	$this->cache_prefix = self::DEF_TRANSIENT_PREFIX;
 	  	$this->prime_cron = self::DEF_PRIME_CRON;
 	  	$this->execute_cron = self::DEF_EXECUTE_CRON;
 	  	$this->event_schedule = self::DEF_EVENT_SCHEDULE;
@@ -106,7 +96,7 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
 	  	if ( isset( $options['target_sns'] ) ) $this->target_sns = $options['target_sns'];
 	  	if ( isset( $options['check_interval'] ) ) $this->check_interval = $options['check_interval'];
 	  	if ( isset( $options['posts_per_check'] ) ) $this->posts_per_check = $options['posts_per_check'];
-	  	if ( isset( $options['transient_prefix'] ) ) $this->transient_prefix = $options['transient_prefix'];
+	  	if ( isset( $options['cache_prefix'] ) ) $this->cache_prefix = $options['cache_prefix'];
 		if ( isset( $options['prime_cron'] ) ) $this->prime_cron = $options['prime_cron'];
 		if ( isset( $options['execute_cron'] ) ) $this->execute_cron = $options['execute_cron'];
 		if ( isset( $options['event_schedule'] ) ) $this->event_schedule = $options['event_schedule'];
@@ -154,15 +144,9 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
 		Common_Util::log( '[' . __METHOD__ . '] next_exec_time: ' . $next_exec_time );
 		Common_Util::log( '[' . __METHOD__ . '] posts_total: ' . $posts_total );
 		
-	  	$transient_ID = $this->get_transient_ID($this->offset_suffix);
+	  	$option_key = $this->get_cache_key($this->offset_suffix);
 		
-	  /*
-		if ( false === ( $posts_offset = get_transient( $transient_ID ) ) ) {
-			$posts_offset = 0;
-		}
-		*/
-
-		if ( false === ( $posts_offset = get_option( $transient_ID ) ) ) {
+		if ( false === ( $posts_offset = get_option( $option_key ) ) ) {
 			$posts_offset = 0;
 		}
 	  
@@ -176,10 +160,8 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
 			$posts_offset = 0;
 		}
 
-	  	//set_transient( $transient_ID, $posts_offset, 3 * $this->check_interval );
-	  	update_option( $transient_ID, $posts_offset );
+	  	update_option( $option_key, $posts_offset );
 	  
-	  	
 	}
 
   	/**
@@ -226,12 +208,23 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
 			  	
 			  	Common_Util::log( '[' . __METHOD__ . '] post_id: ' . $post_ID );
 			  
-			  	$this->cache( $post_ID, $this->target_sns, $cache_expiration );
+			  	$transient_id = $this->get_cache_key( $post_ID );
+	  
+	  			$url = get_permalink( $post_ID );
+
+				$options = array(
+					'cache_key' => $transient_id,
+				  	'post_id' => $post_ID,
+					'target_url' => $url,
+				  	'target_sns' => $this->target_sns,
+					'cache_expiration' => $cache_expiration
+				);
 			  
-			  	if ( ! is_null( $this->delegate ) && method_exists( $this->delegate, 'order_cache' ) ) {
-				  	$options = array( 'post_id' => $post_ID );
-		  			$this->delegate->order_cache( $this, $options );
-	  			}			  
+			  	// Primary cache
+			  	$this->cache( $options );
+			  
+			  	// Secondary cache
+			  	$this->delegate_cache( $options ); 
 			}
 		}
 		wp_reset_postdata();
@@ -307,6 +300,9 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
   	public function initialize_cache() {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 	  
+	  	$option_key = $this->get_cache_key( $this->offset_suffix );
+	  
+	  	update_option( $option_key, 0 );
   	}  
 
     /**
@@ -317,9 +313,9 @@ class Share_Rush_Cache_Engine extends Share_Cache_Engine {
   	public function clear_cache() {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 
-	  	$transient_ID = $this->get_transient_ID( $this->offset_suffix );
+	  	$option_key = $this->get_cache_key( $this->offset_suffix );
 	  
-	  	delete_option( $transient_ID );
+	  	delete_option( $option_key );
 	  
   	}   
   

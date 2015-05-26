@@ -3,7 +3,6 @@
 class-common-job-reset-engine.php
 
 Description: This class is a job reset engine whitch reset expired jobs  
-Version: 0.4.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -72,16 +71,7 @@ class Common_Job_Reset_Engine extends Engine {
 	 * instance for delegation
 	 */	   
   	private $delegate = NULL;
-  
-	/**
-	 * Class constarctor
-	 * Hook onto all of the actions and filters needed by the plugin.
-	 *
-	 */
-	protected function __construct() {
-	  	Common_Util::log('[' . __METHOD__ . '] (line='. __LINE__ . ')');
-	}
-  	
+    	
   	/**
 	 * Initialization
 	 *

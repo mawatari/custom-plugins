@@ -3,7 +3,6 @@
 class-common-util.php
 
 Description: This class is a common utility  
-Version: 0.3.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -113,7 +112,7 @@ class Common_Util {
 	  
 	  	$results = $wpdb->get_results( $sql );
 			  
-	  	foreach ($results as $value) {
+	  	foreach ( $results as $value ) {
     		$custom_post_types[] = $value->post_type;
 		}
 	  
@@ -164,7 +163,7 @@ class Common_Util {
 	 */	           
   	public static function is_secure_url( $url ){
 	  	
-	  	if ( preg_match('/^(https)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)$/', $url ) ) {
+	  	if ( preg_match( '/^(https)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)$/', $url ) ) {
 	  		return true;
 		} else {
 		  	return false;
@@ -178,12 +177,130 @@ class Common_Util {
 	 */	           
   	public static function is_normal_url( $url ){
 	  	
-	  	if ( preg_match('/^(http)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)$/', $url ) ) {
+	  	if ( preg_match( '/^(http)(:\/\/[-_.!~*\'()a-zA-Z0-9;\/?:\@&=+\$,%#]+)$/', $url ) ) {
 	  		return true;
 		} else {
 		  	return false;
 		}	  
-  	}    
+  	} 
+  
+  	/**
+	 * get cout data from SNS
+	 *
+	 * @since 0.5.1
+	 */
+    public static function multi_remote_get( $urls, $timeout = 0, $sslverify = true, $curl = false ) {
+
+	  	global $wp_version;
+
+        $responses = array();
+
+        if ( empty( $urls ) ) {
+            return $responses; 
+        }
+	  
+	  	if ( $curl ) {
+	  
+		  	Common_Util::log( '[' . __METHOD__ . '] cURL: On' );
+		  
+        	$mh = curl_multi_init();
+        	$ch = array();
+
+        	foreach ( $urls as $sns => $url ) {
+            	$ch[$sns] = curl_init();
+          
+            	curl_setopt( $ch[$sns], CURLOPT_URL, $url );
+            	curl_setopt( $ch[$sns], CURLOPT_USERAGENT, 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' ) );
+            	curl_setopt( $ch[$sns], CURLOPT_FOLLOWLOCATION, true );
+            	curl_setopt( $ch[$sns], CURLOPT_RETURNTRANSFER, true );
+			  			  
+		  		if ( $sslverify ) {
+            		curl_setopt( $ch[$sns], CURLOPT_SSL_VERIFYPEER, true );
+            		curl_setopt( $ch[$sns], CURLOPT_SSL_VERIFYHOST, 2 );
+				} else {
+            		curl_setopt( $ch[$sns], CURLOPT_SSL_VERIFYPEER, false );
+            		curl_setopt( $ch[$sns], CURLOPT_SSL_VERIFYHOST, 0 );
+				}				
+			  
+            	if ( $timeout > 0 ) {
+                	curl_setopt( $ch[$sns], CURLOPT_CONNECTTIMEOUT, $timeout ); 
+                	curl_setopt( $ch[$sns], CURLOPT_TIMEOUT, $timeout );
+            	}
+            
+            	curl_multi_add_handle( $mh, $ch[$sns] );
+        	}
+
+	  		/*
+			$running = null;
+
+			do {
+		  		$mrc = curl_multi_exec( $mh, $running ); 
+			} while ( $mrc == CURLM_CALL_MULTI_PERFORM );
+	  
+			while ( $running && $mrc == CURLM_OK ) {
+				if ( curl_multi_select( $mh ) != -1 ) {
+					do {
+						$mrc = curl_multi_exec( $mh, $running );
+					} while ( $mrc == CURLM_CALL_MULTI_PERFORM );
+				}
+			}
+	  		*/	  
+	  
+        	$active = null;
+
+        	do {
+          		curl_multi_exec( $mh, $active );
+          		curl_multi_select( $mh );
+        	} while ( $active > 0);
+
+        	foreach( $urls as $sns => $url ){
+            	$responses[$sns]['error'] = curl_error( $ch[$sns] );
+
+            	if( ! empty( $responses[$sns]['error'] ) ) {
+                	$responses[$sns]['data']  = '';
+            	} else {
+                	$responses[$sns]['data']  = curl_multi_getcontent( $ch[$sns] );
+            	}
+            
+            	curl_multi_remove_handle( $mh, $ch[$sns] );
+            	curl_close( $ch[$sns] );
+        	}
+
+        	curl_multi_close( $mh );
+
+        	return $responses; 
+    	} else {
+	  
+		  	Common_Util::log( '[' . __METHOD__ . '] cURL: Off' );
+		  
+	  		$options = array(
+				'user-agent' => 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
+				);
+		  
+		  	if ( $sslverify ) {
+			  	$options['sslverify'] = true;
+			} else {
+			  	$options['sslverify'] = false;
+			}
+		  
+	  		if ( $timeout > 0 ) {
+		  		$options['timeout'] = $timeout;
+			}
+	  	
+        	foreach ( $urls as $sns => $url ) {		  
+		  		$response = wp_remote_get( $url, $options );
+		  
+				if ( ! is_wp_error( $response ) && $response['response']['code'] === 200 ) {
+    				$responses[$sns]['data'] = $response['body'];
+				} else {
+    				$responses[$sns]['data'] = '';
+			  		$responses[$sns]['error'] = $response->get_error_message();
+				}
+			}
+	  
+	  		return $responses;
+		}
+	}
   
 }
 

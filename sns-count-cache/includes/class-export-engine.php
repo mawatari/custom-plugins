@@ -3,7 +3,6 @@
 class-export-engine.php
 
 Description: This class is a data export engine whitch exports cached data using wp-cron at regular intervals  
-Version: 0.4.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -42,16 +41,7 @@ abstract class Export_Engine extends Engine {
 	 * Meta key for follow second cache
 	 */	    
   	protected $follow_meta_key_prefix = NULL;  
-    
-	/**
-	 * Class constarctor
-	 * Hook onto all of the actions and filters needed by the plugin.
-	 *
-	 */
-	protected function __construct() {
-	  	Common_Util::log('[' . __METHOD__ . '] (line='. __LINE__ . ')');
-	}
-  	
+      	
 }
 
 ?>

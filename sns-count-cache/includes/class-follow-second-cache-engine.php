@@ -3,7 +3,6 @@
 class-follow-second-cache-engine.php
 
 Description: This class is a data cache engine whitch get and cache data using wp-cron at regular intervals  
-Version: 0.4.0
 Author: Daisuke Maruyama
 Author URI: http://marubon.info/
 License: GPL2 or later
@@ -12,7 +11,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 /*
 
-Copyright (C) 2014 Daisuke Maruyama
+Copyright (C) 2014 - 2015 Daisuke Maruyama
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -71,20 +70,6 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
 	 * Cache target
 	 */	            
   	private $target_sns = array();  
-
-  	/**
-	 * Cache post types
-	 */	   
-	private $post_types = array( 'post', 'page' );
-  
-	/**
-	 * Class constarctor
-	 * Hook onto all of the actions and filters needed by the plugin.
-	 *
-	 */
-	protected function __construct() {
-	  	Common_Util::log('[' . __METHOD__ . '] (line='. __LINE__ . ')');
-	}
   
   	/**
 	 * Initialization
@@ -94,7 +79,7 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
   	public function initialize( $options = array() ) {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 
-	  	$this->transient_prefix = self::DEF_TRANSIENT_PREFIX;
+	  	$this->cache_prefix = self::DEF_TRANSIENT_PREFIX;
 	  	$this->prime_cron = self::DEF_PRIME_CRON;
 	  	$this->execute_cron = self::DEF_EXECUTE_CRON;
 	  	$this->event_schedule = self::DEF_EVENT_SCHEDULE;
@@ -102,13 +87,12 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
 	  
 	  	if ( isset( $options['target_sns'] ) ) $this->target_sns = $options['target_sns'];
 	  	if ( isset( $options['check_interval'] ) ) $this->check_interval = $options['check_interval'];
-	  	if ( isset( $options['transient_prefix'] ) ) $this->transient_prefix = $options['transient_prefix'];
+	  	if ( isset( $options['cache_prefix'] ) ) $this->cache_prefix = $options['cache_prefix'];
 		if ( isset( $options['prime_cron'] ) ) $this->prime_cron = $options['prime_cron'];
 		if ( isset( $options['execute_cron'] ) ) $this->execute_cron = $options['execute_cron'];
 		if ( isset( $options['event_schedule'] ) ) $this->event_schedule = $options['event_schedule'];
 	  	if ( isset( $options['event_description'] ) ) $this->event_description = $options['event_description'];
 	  	if ( isset( $options['meta_key_prefix'] ) ) $this->meta_key_prefix = $options['meta_key_prefix']; 
-		if ( isset( $options['post_types'] ) ) $this->post_types = $options['post_types'];	  
 	  
 		add_filter( 'cron_schedules', array( $this, 'schedule_check_interval' ) ); 
 		add_action( $this->prime_cron, array( $this, 'prime_cache' ) );
@@ -155,8 +139,18 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
 	 */	    
 	public function execute_cache() {
 	 	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
-		
-	  	$this->cache( NULL, $this->target_sns, NULL );
+
+	  	$url = get_feed_link();
+	  
+	  	$transient_id = $this->get_cache_key( 'follow' );	  
+
+		$options = array(
+			'cache_key' => $transient_id,
+			'target_url' => $url,
+		  	'target_sns' => $this->target_sns,
+		);
+	  
+	  	$this->cache( $options );
 	  	
 	}
   
@@ -165,25 +159,19 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
 	 *
 	 * @since 0.1.1
 	 */  	
-  	public function cache( $post_ID, $target_sns, $cache_expiration ) {
+  	public function cache( $options = array() ) {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 	  
-		$transient_ID = $this->get_transient_ID( 'follow' );
+	  	$transient_id = $options['cache_key'];
+		$target_url = $options['target_url'];
+		$target_sns = $options['target_sns'];
 			  		  
-  		if ( false !== ( $sns_followers = get_transient( $transient_ID ) ) ) {
-				  
-			foreach ( $target_sns as $key => $value ) {
+  		if ( false !== ( $sns_followers = get_transient( $transient_id ) ) ) {
+		
+		  	$option_key = $this->get_cache_key( 'follow' );
+		  
+		  	update_option( $option_key, $sns_followers );
 					  
-				$meta_key = $this->meta_key_prefix . strtolower( $key );
-					  
-				if ( $value ) {
-					if ( isset( $sns_followers[$key] ) && $sns_followers[$key] >= 0 ) {
-						Common_Util::log( '[' . __METHOD__ . '] meta_key: ' . $meta_key . ' SNS: ' . $key . ' post_ID: ' . $post_ID . ' - ' . $sns_followers[$key] );
-						  
-					  	update_option( $meta_key, $sns_followers[$key] );
-					}
-				}
-			}	  
 		}
 	  
 	}  
@@ -206,15 +194,18 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
 	 */	     
   	public function initialize_cache() {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
+	  	  
+	  	$option_key = $this->get_cache_key( 'follow' );
 	  
-		foreach ( $this->target_sns as $key => $value ) {
-					  
-			$meta_key = $this->meta_key_prefix . strtolower( $key );
-					  
-			if ( $value ) {
-				update_option( $meta_key, -1 );
+	  	$sns_followers = array();
+	  	
+		foreach ( $this->target_sns as $sns => $active ) {					  					  
+			if ( $active ) {
+			  	$sns_followers[$sns] = -1;
 			}
-		}	
+		}
+	  
+		update_option( $option_key, $sns_followers );
 	    	
   	}  
 
@@ -226,47 +217,21 @@ class Follow_Second_Cache_Engine extends Cache_Engine {
   	public function clear_cache() {
 	  	Common_Util::log( '[' . __METHOD__ . '] (line='. __LINE__ . ')' );
 
-		foreach ( $this->target_sns as $key => $value ) {
+	  	$option_key = $this->get_cache_key( 'follow' );
+		 	
+		delete_option( $option_key );
+	  
+	  	// Compatibility for old version
+		foreach ( $this->target_sns as $sns => $active ) {
 					  
-			$meta_key = $this->meta_key_prefix . strtolower( $key );
+			$option_key = $this->get_cache_key( $sns );
 					  
-			if ( $value ) {
-				delete_option( $meta_key );
+			if ( $active ) {
+				delete_option( $option_key );
 			}
 		}		
 	  
-	  	// compatibility for old version
-		$query_args = array(
-			'post_type' => $this->post_types,
-			'post_status' => 'publish',
-			'nopaging' => true,
-			'update_post_term_cache' => false,
-			'update_post_meta_cache' => false
-		);
-
-		$posts_query = new WP_Query( $query_args );
-	  
-		if ( $posts_query->have_posts() ) {
-			while ( $posts_query->have_posts() ) {
-				$posts_query->the_post();
-			  
-				$post_ID = get_the_ID();
-			  	
-				foreach ( $this->target_sns as $key => $value ) {
-					  
-					$meta_key = $this->meta_key_prefix . strtolower( $key );
-					  
-					if ( $value ) {
-						delete_post_meta($post_ID, $meta_key);
-					}
-				}		  	 
-			}
-		}
-		wp_reset_postdata();
-	  
-  
-	  
-  	}    
+  	}
   
 }
 
