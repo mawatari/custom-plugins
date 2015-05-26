@@ -2014,7 +2014,8 @@ function scc_get_follow_feedly() {
   	return scc_get_follow( $options );
 }
 
-  
+require_once ( dirname( __FILE__ ) . '/custom-functions.php' );
+
 }
 
 ?>
