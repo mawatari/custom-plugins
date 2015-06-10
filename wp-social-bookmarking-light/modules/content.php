@@ -46,23 +46,22 @@ function wp_social_bookmarking_light_output( $services, $link, $title )
 
     // 関心度を追加表示
     if (function_exists('scc_get_share_total')) {
-        // カウントが0である場合はreturn
+        // カウントが0である場合は処理しない
         $count = intval(scc_get_share_total());
-        if (!$count)
-            return $out;
+        if ($count) {
+            // タイトルに関心度数を表示する
+            $interestCount = $count == 1 ? '1 interest' : $count . ' interests';
+            $interestClass = 'interest';
+            if ($count <= 3) {
+                $interestClass .= ' interest-low';
+            } elseif ($count <= 10) {
+                $interestClass .= ' interest-middle';
+            } else {
+                $interestClass .= ' interest-high';
+            }
 
-        // タイトルに関心度数を表示する
-        $interestCount = $count == 1 ? '1 interest' : $count . ' interests';
-        $interestClass = 'interest';
-        if ($count <= 3) {
-            $interestClass .= ' interest-low';
-        } elseif ($count <= 10) {
-            $interestClass .= ' interest-middle';
-        } else {
-            $interestClass .= ' interest-high';
+            $out .= '<span class="' . $interestClass . '">' . $interestCount . '</span>';
         }
-
-        $out .= '<span class="' . $interestClass . '">' . $interestCount . '</span>';
     }
 
     return "<div class='wp_social_bookmarking_light'>{$out}</div><br class='wp_social_bookmarking_light_clear' />";
