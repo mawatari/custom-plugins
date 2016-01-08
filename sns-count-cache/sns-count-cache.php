@@ -2361,6 +2361,7 @@ function scc_is_variation_analysis_enabled() {
   
   
   
+require_once ( dirname( __FILE__ ) . '/custom-functions.php' );
 }
 
 ?>
