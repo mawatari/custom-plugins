@@ -70,28 +70,31 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	
 	?>
 	<div class="wrap">
-	  	<h2><a href="admin.php?page=scc-cache-status"><?php _e( 'SNS Count Cache', self::DOMAIN ) ?></a></h2>
+	  	<h2><a href="admin.php?page=scc-cache-status"><?php _e( 'SNS Count Cache', self::DOMAIN ); ?></a></h2>
 		<div class="sns-cnt-cache">
 			<h3 class="nav-tab-wrapper">
-				<a class="nav-tab" href="admin.php?page=scc-dashboard">Dashboard</a>
-				<a class="nav-tab nav-tab-active" href="admin.php?page=scc-cache-status">Cache Status</a>
-				<a class="nav-tab" href="admin.php?page=scc-share-count">Share Count</a>
-				<a class="nav-tab" href="admin.php?page=scc-setting">Setting</a>
-				<a class="nav-tab" href="admin.php?page=scc-help">Help</a>
+				<a class="nav-tab" href="admin.php?page=scc-dashboard"><?php _e( 'Dashboard', self::DOMAIN ); ?></a>
+				<a class="nav-tab nav-tab-active" href="admin.php?page=scc-cache-status"><?php _e( 'Cache Status', self::DOMAIN ); ?></a>
+				<a class="nav-tab" href="admin.php?page=scc-share-count"><?php _e( 'Share Count', self::DOMAIN ); ?></a>
+			  	<?php if ( $this->share_variation_analysis_mode !== self::OPT_SHARE_VARIATION_ANALYSIS_NONE ) { ?>
+				<a class="nav-tab" href="admin.php?page=scc-hot-content"><?php _e( 'Hot Content', self::DOMAIN ); ?></a>
+			  	<?php } ?>
+				<a class="nav-tab" href="admin.php?page=scc-setting"><?php _e( 'Setting', self::DOMAIN ); ?></a>
+				<a class="nav-tab" href="admin.php?page=scc-help"><?php _e( 'Help', self::DOMAIN ); ?></a>
 			</h3>			  
 			<div class="metabox-holder">
 				<div id="share-site-summary" class="postbox">
 					<div class="handlediv" title="Click to toggle"><br></div>
-					<h3 class="hndle"><span><?php _e( 'Cache Status', self::DOMAIN ) ?></span></h3>  	
+					<h3 class="hndle"><span><?php _e( 'Cache Status', self::DOMAIN ); ?></span></h3>  	
 					<div class="inside">								  
 					  	<table class="view-table">
 							<thead>
 			  					<tr>
 									<th>No.</th>
-									<th><?php _e( 'Target Content', self::DOMAIN ) ?></th>
-									<th><?php _e( 'Primary Cache', self::DOMAIN ) ?></th>
-							  		<th><?php _e( 'Secondary Cache', self::DOMAIN ) ?></th>
-							  		<th><?php _e( 'Crawl Date', self::DOMAIN ) ?></th>
+									<th><?php _e( 'Content', self::DOMAIN ); ?></th>
+									<th><?php _e( 'Primary Cache', self::DOMAIN ); ?></th>
+							  		<th><?php _e( 'Secondary Cache', self::DOMAIN ); ?></th>
+							  		<th><?php _e( 'Crawl Date', self::DOMAIN ); ?></th>
 							  		<th></th>
 			  					</tr>
 							</thead>
@@ -135,7 +138,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 					  						echo '<td class="full-cache">';
 											_e( 'full cache', self::DOMAIN );
 					  						echo '</td>';
-										} else if ( $partial_cache_flag && ! $full_cache_flag ) {
+										} elseif ( $partial_cache_flag && ! $full_cache_flag ) {
 					  						echo '<td class="partial-cache">';
 											_e( 'partial cache', self::DOMAIN );
 					  						echo '</td>';								  
@@ -175,7 +178,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 					  					echo '<td class="full-cache">';
 										_e( 'full cache', self::DOMAIN );
 					  					echo '</td>';
-									} else if ( $partial_cache_flag && ! $full_cache_flag ) {
+									} elseif ( $partial_cache_flag && ! $full_cache_flag ) {
 					  					echo '<td class="partial-cache">';
 										_e( 'partial cache', self::DOMAIN );
 					  					echo '</td>';								  
@@ -235,7 +238,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 					  						echo '<td class="full-cache">';
 											_e( 'full cache', self::DOMAIN );
 					  						echo '</td>';
-										} else if ( $partial_cache_flag && ! $full_cache_flag ) {
+										} elseif ( $partial_cache_flag && ! $full_cache_flag ) {
 					  						echo '<td class="partial-cache">';
 											_e( 'partial cache', self::DOMAIN );
 					  						echo '</td>';								  
@@ -268,7 +271,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 					  					echo '<td class="full-cache">';
 										_e( 'full cache', self::DOMAIN );
 					  					echo '</td>';
-									} else if ( $partial_cache_flag && ! $full_cache_flag ) {
+									} elseif ( $partial_cache_flag && ! $full_cache_flag ) {
 					  					echo '<td class="partial-cache">';
 										_e( 'partial cache', self::DOMAIN );
 					  					echo '</td>';								  
@@ -301,7 +304,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 							  	 	$nonce = wp_create_nonce( __FILE__ );
 							  	 	$cache_url = esc_url( 'admin.php?page=scc-cache-status&action=cache&post_id=' . get_the_ID() . '&_wpnonce=' . $nonce . '&paged=' . $paged );			
 							?>
-									<td><a class="button" href="<?php echo $cache_url ?>">Cache</a></td>
+									<td><a class="button" href="<?php echo $cache_url ?>"><?php _e( 'Cache', self::DOMAIN ); ?></a></td>
 			  					</tr>
 
 							<?php
