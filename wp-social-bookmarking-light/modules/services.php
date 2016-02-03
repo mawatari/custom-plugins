@@ -35,7 +35,7 @@ class WpSocialBookmarkingLight
         $this->url = $url;
         $this->title = $title;
         $this->encode_url = rawurlencode( $url );
-        $this->encode_title = rawurlencode( strip_tags($title) );
+        $this->encode_title = rawurlencode( $title );
         $this->encode_blogname = rawurlencode( $this->blogname );
     }
     
